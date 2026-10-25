@@ -1,0 +1,22 @@
+import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from "@angular/core";
+import { provideRouter } from "@angular/router";
+import { provideHttpClient, withXhr, withInterceptorsFromDi } from "@angular/common/http";
+import { provideServiceWorker } from "@angular/service-worker";
+import { provideToastr } from "ngx-toastr";
+
+import { routes } from "./app.routes";
+import { AuthInterceptorProvider } from "./auth/interceptors/auth.interceptor";
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection(),
+    provideRouter(routes),
+    provideHttpClient(withXhr(), withInterceptorsFromDi()),
+    AuthInterceptorProvider,
+    provideToastr(),
+    provideServiceWorker("ngsw-worker.js", {
+      enabled: !isDevMode(),
+      registrationStrategy: "registerWhenStable:30000",
+    }),
+  ],
+};

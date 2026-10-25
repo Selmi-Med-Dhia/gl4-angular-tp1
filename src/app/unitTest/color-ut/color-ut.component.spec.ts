@@ -7,7 +7,7 @@ fdescribe("ColorUtComponent", () => {
   let fixture: ComponentFixture<ColorUtComponent>;
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-    declarations: [ColorUtComponent],
+    imports: [ColorUtComponent],
 }).compileComponents();
 
     fixture = TestBed.createComponent(ColorUtComponent);

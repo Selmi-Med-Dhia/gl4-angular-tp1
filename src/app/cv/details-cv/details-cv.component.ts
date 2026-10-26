@@ -1,4 +1,6 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { EMPTY, Observable, catchError } from 'rxjs';
 import { Cv } from '../model/cv';
 import { CvService } from '../services/cv.service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -12,39 +14,36 @@ import { DefaultImagePipe } from '../pipes/default-image.pipe';
     templateUrl: './details-cv.component.html',
     styleUrls: ['./details-cv.component.css'],
     changeDetection: ChangeDetectionStrategy.Eager,
-    imports: [DefaultImagePipe]
+    imports: [DefaultImagePipe, AsyncPipe]
 })
-export class DetailsCvComponent implements OnInit {
+export class DetailsCvComponent {
   private cvService = inject(CvService);
   private router = inject(Router);
   private activatedRoute = inject(ActivatedRoute);
   private toastr = inject(ToastrService);
   authService = inject(AuthService);
 
-  cv: Cv | null = null;
+  cv$: Observable<Cv>;
 
-  ngOnInit() {
-    const id = this.activatedRoute.snapshot.params['id'];
-    this.cvService.getCvById(+id).subscribe({
-        next: (cv) => {
-          this.cv = cv;
-        },
-        error: (e) => {
-          this.router.navigate([APP_ROUTES.cv]);
-        },
-      });
-  }
-  deleteCv(cv: Cv) {
-    this.cvService.deleteCvById(cv.id).subscribe({
-      next: () => {
-        this.toastr.success(`${cv.name} supprimé avec succès`);
+  constructor() {
+    const id = +this.activatedRoute.snapshot.params['id'];
+    this.cv$ = this.cvService.getCvById(id).pipe(
+      catchError(() => {
         this.router.navigate([APP_ROUTES.cv]);
-      },
-      error: () => {
-        this.toastr.error(
-          `Problème avec le serveur veuillez contacter l'admin`
-        );
-      },
+        return EMPTY;
+      })
+    );
+  }
+
+  deleteCv(cv: Cv) {
+    this.cvService.deleteCvById(cv.id).pipe(
+      catchError(() => {
+        this.toastr.error('Problème avec le serveur veuillez contacter l\'admin');
+        return EMPTY;
+      })
+    ).subscribe(() => {
+      this.toastr.success(`${cv.name} supprimé avec succès`);
+      this.router.navigate([APP_ROUTES.cv]);
     });
   }
 }

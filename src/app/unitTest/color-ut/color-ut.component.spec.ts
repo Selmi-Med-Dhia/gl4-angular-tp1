@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 
 import { ColorUtComponent } from "./color-ut.component";
 
-fdescribe("ColorUtComponent", () => {
+describe("ColorUtComponent", () => {
   let component: ColorUtComponent;
   let fixture: ComponentFixture<ColorUtComponent>;
   beforeEach(async () => {

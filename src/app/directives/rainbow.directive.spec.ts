@@ -4,6 +4,7 @@ import { By } from '@angular/platform-browser';
 import { RainbowDirective } from './rainbow.directive';
 
 @Component({
+  imports: [RainbowDirective],
   template: '<input appRainbow><div appRainbow>Plain div</div>',
 })
 class TestHostComponent {}
@@ -13,7 +14,7 @@ describe('RainbowDirective', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, RainbowDirective],
+      imports: [TestHostComponent],
     }).compileComponents();
     fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();

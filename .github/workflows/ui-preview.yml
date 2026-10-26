@@ -1,0 +1,78 @@
+name: Angular real-browser preview
+
+on:
+  push:
+    branches:
+      - preview/angular-ui-capture
+    paths:
+      - .github/workflows/ui-preview.yml
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install the real Angular app
+        run: npm ci --no-audit --no-fund
+      - name: Build the app
+        run: npm run build
+      - name: Start Angular dev server
+        shell: bash
+        run: |
+          nohup npm run start -- --host 127.0.0.1 --port 4200 > /tmp/angular-serve.log 2>&1 &
+          for i in $(seq 1 100); do
+            if curl -fsS http://127.0.0.1:4200/ >/dev/null; then
+              echo "Angular dev server responded on port 4200"
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/angular-serve.log
+          exit 1
+      - name: Capture real Chrome screenshots and rendered DOM
+        shell: bash
+        run: |
+          mkdir -p preview/screenshots
+          chrome=$(command -v google-chrome)
+          echo "Browser: $chrome"
+          for item in "home:/" "todo:/todo" "ttc:/ttc" "rainbow:/rainbow" "cv:/cv"; do
+            page="${item%%:*}"
+            route="${item#*:}"
+            url="http://127.0.0.1:4200$route"
+            echo "Capturing $page => $url"
+            "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+              --hide-scrollbars --window-size=1440,900 --virtual-time-budget=5000 \
+              --screenshot="$PWD/preview/screenshots/$page.png" "$url" \
+              > "/tmp/chrome-$page.log" 2>&1 || true
+            "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+              --virtual-time-budget=5000 --dump-dom "$url" \
+              > "preview/screenshots/$page.dom.html" 2> /dev/null || true
+            test -s "preview/screenshots/$page.png" || { cat "/tmp/chrome-$page.log"; exit 1; }
+            ls -lh "preview/screenshots/$page.png"
+          done
+          cat /tmp/angular-serve.log | tail -35
+      - name: Upload preview screenshots as GitHub Actions artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-preview-screenshots
+          path: preview/screenshots
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Save screenshots to the preview-only branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add preview/screenshots
+          git diff --cached --quiet && exit 0
+          git commit -m "test: capture running Angular screens in Chrome"
+          git push origin HEAD:preview/angular-ui-capture

@@ -1,27 +1,32 @@
-# Aymen Sellaouti Advanced Training
+# Angular Renaissance — GL4 TP1
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 15.0.1.
+Angular exercises implemented on separate branches, as required by the TP.
 
-## Development server
+## Branches
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+- **`rxjs`** — Angular 18, NgModules, the rainbow input directive with host bindings, and the CV components using `async` and `catchError` (exercises 8 and 14).
+- **`migration`** — Angular 22, standalone bootstrapping, modern template control flow, and `inject()` (exercises 3–6).
+- **`signal`** — Angular 22 with the signal-based rainbow directive, Todo board and TTC calculator, plus the migrated CV code (exercises 8, 10 and 11).
+- **`main`** — Integrated Angular 22 version. The Angular 18 implementation remains accessible on `rxjs`.
 
-## Code scaffolding
+The CV Signals and authentication Signals exercises (pages 12–13) are being developed separately and should be reviewed before adding them to the final integrated version.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Run the project
 
-## Build
+Use Node.js 22 and check out the branch you want to validate.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+```bash
+npm ci
+npm start
+```
 
-## Running unit tests
+The app is served at `http://localhost:4200`. The Todo board and TTC calculator are accessible through the navbar on `signal` and the integrated `main` branch. The rainbow input example is available at `/rainbow`.
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## Validation
 
-## Running end-to-end tests
+```bash
+npm run build
+npm test -- --watch=false --browsers=ChromeHeadless
+```
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+The fork's GitHub Actions workflow runs these checks automatically. It also rejects focused Jasmine tests, so a successful result cannot silently skip the rest of the suite.

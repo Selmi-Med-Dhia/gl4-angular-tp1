@@ -1,0 +1,40 @@
+name: Angular checks
+
+on:
+  push:
+    branches:
+      - main
+      - rxjs
+      - migration
+      - signal
+      - 'yc/**'
+  pull_request:
+    branches:
+      - main
+      - rxjs
+      - migration
+      - signal
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Production build
+        run: npm run build
+      - name: Reject focused tests
+        run: |
+          if grep -RnE '\b(fdescribe|fit)[[:space:]]*\(' src --include='*.spec.ts'; then
+            echo "Focused tests would skip part of the suite"
+            exit 1
+          fi
+      - name: Unit tests
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: npm test -- --watch=false --browsers=ChromeHeadless

@@ -1,3 +1,4 @@
+import { componentTestProviders } from '../../testing/test-providers';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DetailsCvComponent } from './details-cv.component';
@@ -8,7 +9,8 @@ describe('DetailsCvComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-    imports: [DetailsCvComponent]
+    imports: [DetailsCvComponent],
+    providers: componentTestProviders(),
 })
     .compileComponents();
 

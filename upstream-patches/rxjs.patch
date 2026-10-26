@@ -1,0 +1,697 @@
+# Patch for upstream rxjs
+# Base: 18f0ece3fdae651fdb87f6db971145812a206f80
+# Expected result tree: 62ea70a9c2dd670def7c7aa5074949390c320fb7
+diff --git a/.github/workflows/angular.yml b/.github/workflows/angular.yml
+new file mode 100644
+--- /dev/null
++++ b/.github/workflows/angular.yml
+@@ -0,0 +1,40 @@
++name: Angular checks
++
++on:
++  push:
++    branches:
++      - main
++      - rxjs
++      - migration
++      - signal
++      - 'yc/**'
++  pull_request:
++    branches:
++      - main
++      - rxjs
++      - migration
++      - signal
++
++jobs:
++  verify:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: '22'
++          cache: npm
++      - name: Install dependencies
++        run: npm ci --no-audit --no-fund
++      - name: Production build
++        run: npm run build
++      - name: Reject focused tests
++        run: |
++          if grep -RnE '\b(fdescribe|fit)[[:space:]]*\(' src --include='*.spec.ts'; then
++            echo "Focused tests would skip part of the suite"
++            exit 1
++          fi
++      - name: Unit tests
++        env:
++          CHROME_BIN: /usr/bin/google-chrome
++        run: npm test -- --watch=false --browsers=ChromeHeadless
+diff --git a/src/app/app.component.spec.ts b/src/app/app.component.spec.ts
+--- a/src/app/app.component.spec.ts
++++ b/src/app/app.component.spec.ts
+@@ -1,9 +1,13 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from './testing/test-providers';
+ import { TestBed } from '@angular/core/testing';
+ import { AppComponent } from './app.component';
+ 
+ describe('AppComponent', () => {
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      schemas: shallowTestSchemas,
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [
+         AppComponent
+       ],
+@@ -16,18 +20,15 @@ describe('AppComponent', () => {
+     expect(app).toBeTruthy();
+   });
+ 
+-  it(`should have as title 'AdvancedTraining'`, () => {
++  it('should expose the application title', () => {
+     const fixture = TestBed.createComponent(AppComponent);
+     const app = fixture.componentInstance;
+-    expect(app.title).toEqual('AdvancedTraining');
++    expect(app.title).toBe('Starting Advanced Topics');
+   });
+ 
+-  it('should render title', () => {
++  it('renders the navigation container', () => {
+     const fixture = TestBed.createComponent(AppComponent);
+     fixture.detectChanges();
+-    const compiled = fixture.nativeElement as HTMLElement;
+-    expect(compiled.querySelector('.content span')?.textContent).toContain(
+-      'AdvancedTraining app is running!'
+-    );
++    expect(fixture.nativeElement.querySelector('app-navbar')).not.toBeNull();
+   });
+ });
+diff --git a/src/app/auth/guards/auth.guard.spec.ts b/src/app/auth/guards/auth.guard.spec.ts
+--- a/src/app/auth/guards/auth.guard.spec.ts
++++ b/src/app/auth/guards/auth.guard.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { TestBed } from '@angular/core/testing';
+ 
+ import { AuthGuard } from './auth.guard';
+@@ -6,7 +7,9 @@ describe('AuthGuard', () => {
+   let guard: AuthGuard;
+ 
+   beforeEach(() => {
+-    TestBed.configureTestingModule({});
++    TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),});
+     guard = TestBed.inject(AuthGuard);
+   });
+diff --git a/src/app/auth/interceptors/auth.interceptor.spec.ts b/src/app/auth/interceptors/auth.interceptor.spec.ts
+--- a/src/app/auth/interceptors/auth.interceptor.spec.ts
++++ b/src/app/auth/interceptors/auth.interceptor.spec.ts
+@@ -1,10 +1,12 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { TestBed } from '@angular/core/testing';
+ 
+ import { AuthInterceptor } from './auth.interceptor';
+ 
+ describe('AuthInterceptor', () => {
+   beforeEach(() => TestBed.configureTestingModule({
+-    providers: [
++      imports: commonTestImports,
++    providers: [...commonTestProviders(),
+       AuthInterceptor
+       ]
+   }));
+diff --git a/src/app/auth/login/login.component.spec.ts b/src/app/auth/login/login.component.spec.ts
+--- a/src/app/auth/login/login.component.spec.ts
++++ b/src/app/auth/login/login.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { LoginComponent } from './login.component';
+@@ -8,6 +9,8 @@ describe('LoginComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ LoginComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/auth/services/auth.service.spec.ts b/src/app/auth/services/auth.service.spec.ts
+--- a/src/app/auth/services/auth.service.spec.ts
++++ b/src/app/auth/services/auth.service.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { TestBed } from '@angular/core/testing';
+ 
+ import { AuthService } from './auth.service';
+@@ -6,7 +7,9 @@ describe('AuthService', () => {
+   let service: AuthService;
+ 
+   beforeEach(() => {
+-    TestBed.configureTestingModule({});
++    TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),});
+     service = TestBed.inject(AuthService);
+   });
+diff --git a/src/app/components/card-profil/card-profil.component.spec.ts b/src/app/components/card-profil/card-profil.component.spec.ts
+--- a/src/app/components/card-profil/card-profil.component.spec.ts
++++ b/src/app/components/card-profil/card-profil.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { CardProfilComponent } from './card-profil.component';
+@@ -8,6 +9,8 @@ describe('CardProfilComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ CardProfilComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/components/color/color.component.spec.ts b/src/app/components/color/color.component.spec.ts
+--- a/src/app/components/color/color.component.spec.ts
++++ b/src/app/components/color/color.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { ColorComponent } from './color.component';
+@@ -8,6 +9,8 @@ describe('ColorComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ ColorComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/components/first/first.component.spec.ts b/src/app/components/first/first.component.spec.ts
+--- a/src/app/components/first/first.component.spec.ts
++++ b/src/app/components/first/first.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { FirstComponent } from './first.component';
+@@ -8,6 +9,9 @@ describe('FirstComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      schemas: shallowTestSchemas,
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ FirstComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/components/navbar/navbar.component.html b/src/app/components/navbar/navbar.component.html
+--- a/src/app/components/navbar/navbar.component.html
++++ b/src/app/components/navbar/navbar.component.html
+@@ -11,7 +11,7 @@
+       class="navbar-toggler"
+       type="button"
+       data-bs-toggle="collapse"
+-      data-bs-target="['']navbarNavAltMarkup"
++      data-bs-target="#navbarNavAltMarkup"
+       aria-controls="navbarNavAltMarkup"
+       aria-expanded="false"
+       aria-label="Toggle navigation"
+diff --git a/src/app/components/navbar/navbar.component.spec.ts b/src/app/components/navbar/navbar.component.spec.ts
+--- a/src/app/components/navbar/navbar.component.spec.ts
++++ b/src/app/components/navbar/navbar.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { NavbarComponent } from './navbar.component';
+@@ -8,6 +9,8 @@ describe('NavbarComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ NavbarComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/components/pere/pere.component.spec.ts b/src/app/components/pere/pere.component.spec.ts
+--- a/src/app/components/pere/pere.component.spec.ts
++++ b/src/app/components/pere/pere.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { PereComponent } from './pere.component';
+@@ -8,6 +9,9 @@ describe('PereComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      schemas: shallowTestSchemas,
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ PereComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/components/test-form/test-form.component.spec.ts b/src/app/components/test-form/test-form.component.spec.ts
+--- a/src/app/components/test-form/test-form.component.spec.ts
++++ b/src/app/components/test-form/test-form.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { TestFormComponent } from './test-form.component';
+@@ -8,6 +9,8 @@ describe('TestFormComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ TestFormComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/components/test-http/test-http.component.spec.ts b/src/app/components/test-http/test-http.component.spec.ts
+--- a/src/app/components/test-http/test-http.component.spec.ts
++++ b/src/app/components/test-http/test-http.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { TestHttpComponent } from './test-http.component';
+@@ -8,6 +9,8 @@ describe('TestHttpComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ TestHttpComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/components/two/two.component.spec.ts b/src/app/components/two/two.component.spec.ts
+--- a/src/app/components/two/two.component.spec.ts
++++ b/src/app/components/two/two.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { TwoComponent } from './two.component';
+@@ -8,6 +9,8 @@ describe('TwoComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ TwoComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/cv/add-cv/add-cv.component.spec.ts b/src/app/cv/add-cv/add-cv.component.spec.ts
+--- a/src/app/cv/add-cv/add-cv.component.spec.ts
++++ b/src/app/cv/add-cv/add-cv.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { AddCvComponent } from './add-cv.component';
+@@ -8,6 +9,9 @@ describe('AddCvComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      schemas: shallowTestSchemas,
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ AddCvComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/cv/autocomplete/autocomplete.component.spec.ts b/src/app/cv/autocomplete/autocomplete.component.spec.ts
+--- a/src/app/cv/autocomplete/autocomplete.component.spec.ts
++++ b/src/app/cv/autocomplete/autocomplete.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { AutocompleteComponent } from './autocomplete.component';
+@@ -8,6 +9,8 @@ describe('AutocompleteComponent', () => {
+ 
+   beforeEach(() => {
+     TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [AutocompleteComponent]
+     });
+     fixture = TestBed.createComponent(AutocompleteComponent);
+diff --git a/src/app/cv/cv-card/cv-card.component.spec.ts b/src/app/cv/cv-card/cv-card.component.spec.ts
+--- a/src/app/cv/cv-card/cv-card.component.spec.ts
++++ b/src/app/cv/cv-card/cv-card.component.spec.ts
+@@ -1,3 +1,5 @@
++import { DefaultImagePipe } from '../pipes/default-image.pipe';
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { CvCardComponent } from './cv-card.component';
+@@ -8,7 +10,9 @@ describe('CvCardComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-      declarations: [ CvCardComponent ]
++      imports: commonTestImports,
++      providers: commonTestProviders(),
++      declarations: [CvCardComponent, DefaultImagePipe]
+     })
+     .compileComponents();
+diff --git a/src/app/cv/cv/cv.component.spec.ts b/src/app/cv/cv/cv.component.spec.ts
+--- a/src/app/cv/cv/cv.component.spec.ts
++++ b/src/app/cv/cv/cv.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { CvComponent } from './cv.component';
+@@ -8,6 +9,9 @@ describe('CvComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      schemas: shallowTestSchemas,
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ CvComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/cv/details-cv/details-cv.component.spec.ts b/src/app/cv/details-cv/details-cv.component.spec.ts
+--- a/src/app/cv/details-cv/details-cv.component.spec.ts
++++ b/src/app/cv/details-cv/details-cv.component.spec.ts
+@@ -1,3 +1,5 @@
++import { DefaultImagePipe } from '../pipes/default-image.pipe';
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { DetailsCvComponent } from './details-cv.component';
+@@ -8,7 +10,9 @@ describe('DetailsCvComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-      declarations: [ DetailsCvComponent ]
++      imports: commonTestImports,
++      providers: commonTestProviders(),
++      declarations: [DetailsCvComponent, DefaultImagePipe]
+     })
+     .compileComponents();
+diff --git a/src/app/cv/item/item.component.spec.ts b/src/app/cv/item/item.component.spec.ts
+--- a/src/app/cv/item/item.component.spec.ts
++++ b/src/app/cv/item/item.component.spec.ts
+@@ -1,3 +1,6 @@
++import { Cv } from '../model/cv';
++import { DefaultImagePipe } from '../pipes/default-image.pipe';
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { ItemComponent } from './item.component';
+@@ -8,12 +11,15 @@ describe('ItemComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-      declarations: [ ItemComponent ]
++      imports: commonTestImports,
++      providers: commonTestProviders(),
++      declarations: [ItemComponent, DefaultImagePipe]
+     })
+     .compileComponents();
+ 
+     fixture = TestBed.createComponent(ItemComponent);
+     component = fixture.componentInstance;
++    component.cv = new Cv(1, 'Test', 'User', 'Developer', '', '123456', 25);
+     fixture.detectChanges();
+   });
+diff --git a/src/app/cv/services/cv.service.spec.ts b/src/app/cv/services/cv.service.spec.ts
+--- a/src/app/cv/services/cv.service.spec.ts
++++ b/src/app/cv/services/cv.service.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { TestBed } from '@angular/core/testing';
+ 
+ import { CvService } from './cv.service';
+@@ -6,7 +7,9 @@ describe('CvService', () => {
+   let service: CvService;
+ 
+   beforeEach(() => {
+-    TestBed.configureTestingModule({});
++    TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),});
+     service = TestBed.inject(CvService);
+   });
+diff --git a/src/app/directives/mini-word/mini-word.component.spec.ts b/src/app/directives/mini-word/mini-word.component.spec.ts
+--- a/src/app/directives/mini-word/mini-word.component.spec.ts
++++ b/src/app/directives/mini-word/mini-word.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { MiniWordComponent } from './mini-word.component';
+@@ -8,6 +9,8 @@ describe('MiniWordComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ MiniWordComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/directives/ngclass/ngclass.component.spec.ts b/src/app/directives/ngclass/ngclass.component.spec.ts
+--- a/src/app/directives/ngclass/ngclass.component.spec.ts
++++ b/src/app/directives/ngclass/ngclass.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { NgclassComponent } from './ngclass.component';
+@@ -8,6 +9,9 @@ describe('NgclassComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      schemas: shallowTestSchemas,
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ NgclassComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/directives/rainbow.directive.spec.ts b/src/app/directives/rainbow.directive.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/src/app/directives/rainbow.directive.spec.ts
+@@ -0,0 +1,37 @@
++import { Component } from '@angular/core';
++import { ComponentFixture, TestBed } from '@angular/core/testing';
++import { By } from '@angular/platform-browser';
++import { RainbowDirective } from './rainbow.directive';
++
++@Component({
++  template: '<input appRainbow><div appRainbow>Plain div</div>',
++})
++class TestHostComponent {}
++
++describe('RainbowDirective', () => {
++  let fixture: ComponentFixture<TestHostComponent>;
++
++  beforeEach(async () => {
++    await TestBed.configureTestingModule({
++      declarations: [TestHostComponent, RainbowDirective],
++    }).compileComponents();
++    fixture = TestBed.createComponent(TestHostComponent);
++    fixture.detectChanges();
++  });
++
++  it('only attaches to inputs', () => {
++    expect(fixture.debugElement.queryAll(By.directive(RainbowDirective)).length).toBe(1);
++  });
++
++  it('updates the text and border color after a keyup', () => {
++    const element = fixture.debugElement.query(By.directive(RainbowDirective));
++    const directive = element.injector.get(RainbowDirective);
++
++    element.nativeElement.dispatchEvent(new KeyboardEvent('keyup'));
++    fixture.detectChanges();
++
++    expect(directive.color).toMatch(/^#[0-9a-f]{6}$/);
++    expect(directive.borderColor).toBe(directive.color);
++    expect((element.nativeElement as HTMLInputElement).style.color).toBeTruthy();
++  });
++});
+diff --git a/src/app/optimizationPattern/rh/rh.component.spec.ts b/src/app/optimizationPattern/rh/rh.component.spec.ts
+--- a/src/app/optimizationPattern/rh/rh.component.spec.ts
++++ b/src/app/optimizationPattern/rh/rh.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { RhComponent } from './rh.component';
+@@ -8,6 +9,9 @@ describe('RhComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      schemas: shallowTestSchemas,
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ RhComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/optimizationPattern/user-list/user-list.component.spec.ts b/src/app/optimizationPattern/user-list/user-list.component.spec.ts
+--- a/src/app/optimizationPattern/user-list/user-list.component.spec.ts
++++ b/src/app/optimizationPattern/user-list/user-list.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { UserListComponent } from './user-list.component';
+@@ -8,6 +9,8 @@ describe('UserListComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ UserListComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/products/services/product.service.spec.ts b/src/app/products/services/product.service.spec.ts
+--- a/src/app/products/services/product.service.spec.ts
++++ b/src/app/products/services/product.service.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { TestBed } from '@angular/core/testing';
+ 
+ import { ProductService } from './product.service';
+@@ -6,7 +7,9 @@ describe('ProductService', () => {
+   let service: ProductService;
+ 
+   beforeEach(() => {
+-    TestBed.configureTestingModule({});
++    TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),});
+     service = TestBed.inject(ProductService);
+   });
+diff --git a/src/app/rxjs/test-observable/test-observable.component.spec.ts b/src/app/rxjs/test-observable/test-observable.component.spec.ts
+--- a/src/app/rxjs/test-observable/test-observable.component.spec.ts
++++ b/src/app/rxjs/test-observable/test-observable.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { TestObservableComponent } from './test-observable.component';
+@@ -8,6 +9,8 @@ describe('TestObservableComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ TestObservableComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/templates/admin/admin.component.spec.ts b/src/app/templates/admin/admin.component.spec.ts
+--- a/src/app/templates/admin/admin.component.spec.ts
++++ b/src/app/templates/admin/admin.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { AdminComponent } from './admin.component';
+@@ -8,6 +9,8 @@ describe('AdminComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ AdminComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/templates/front/front.component.spec.ts b/src/app/templates/front/front.component.spec.ts
+--- a/src/app/templates/front/front.component.spec.ts
++++ b/src/app/templates/front/front.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { FrontComponent } from './front.component';
+@@ -8,6 +9,8 @@ describe('FrontComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ FrontComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/testing/test-providers.ts b/src/app/testing/test-providers.ts
+new file mode 100644
+--- /dev/null
++++ b/src/app/testing/test-providers.ts
+@@ -0,0 +1,27 @@
++import { CommonModule } from '@angular/common';
++import { provideHttpClient } from '@angular/common/http';
++import { provideHttpClientTesting } from '@angular/common/http/testing';
++import { NO_ERRORS_SCHEMA } from '@angular/core';
++import { FormsModule, ReactiveFormsModule } from '@angular/forms';
++import { provideRouter, RouterModule } from '@angular/router';
++import { ToastrService } from 'ngx-toastr';
++
++export const commonTestImports = [
++  CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
++];
++
++export const shallowTestSchemas = [NO_ERRORS_SCHEMA];
++
++export function commonTestProviders() {
++  return [
++    provideHttpClient(),
++    provideHttpClientTesting(),
++    provideRouter([]),
++    {
++      provide: ToastrService,
++      useValue: jasmine.createSpyObj<ToastrService>('ToastrService', [
++        'error', 'info', 'success', 'warning',
++      ]),
++    },
++  ];
++}
+diff --git a/src/app/todo/todo/todo.component.spec.ts b/src/app/todo/todo/todo.component.spec.ts
+--- a/src/app/todo/todo/todo.component.spec.ts
++++ b/src/app/todo/todo/todo.component.spec.ts
+@@ -1,3 +1,4 @@
++import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { TodoComponent } from './todo.component';
+@@ -8,6 +9,8 @@ describe('TodoComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
++      imports: commonTestImports,
++      providers: commonTestProviders(),
+       declarations: [ TodoComponent ]
+     })
+     .compileComponents();
+diff --git a/src/app/unitTest/color-ut/color-ut.component.spec.ts b/src/app/unitTest/color-ut/color-ut.component.spec.ts
+--- a/src/app/unitTest/color-ut/color-ut.component.spec.ts
++++ b/src/app/unitTest/color-ut/color-ut.component.spec.ts
+@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
+ 
+ import { ColorUtComponent } from "./color-ut.component";
+ 
+-fdescribe("ColorUtComponent", () => {
++describe("ColorUtComponent", () => {
+   let component: ColorUtComponent;
+   let fixture: ComponentFixture<ColorUtComponent>;
+   beforeEach(async () => {
+diff --git a/src/app/unitTest/counter/counter.component.spec.ts b/src/app/unitTest/counter/counter.component.spec.ts
+--- a/src/app/unitTest/counter/counter.component.spec.ts
++++ b/src/app/unitTest/counter/counter.component.spec.ts
+@@ -1,7 +1,7 @@
+ import { ComponentFixture, TestBed } from "@angular/core/testing";
+ import { CounterComponent } from "./counter.component";
+ 
+-fdescribe("CounterComponent", () => {
++describe("CounterComponent", () => {
+   let component: CounterComponent;
+   let fixture: ComponentFixture<CounterComponent>;
+   beforeEach(async () => {

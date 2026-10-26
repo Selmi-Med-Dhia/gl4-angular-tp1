@@ -1,0 +1,566 @@
+# Patch for upstream signal
+# Base: d8608b0881f8bfab4d3283a2534b26b8a6bff2d0
+# Expected result tree: 542e91d98c8f6a6a986b34fdb3172b2f2044aa68
+diff --git a/.github/workflows/angular.yml b/.github/workflows/angular.yml
+new file mode 100644
+--- /dev/null
++++ b/.github/workflows/angular.yml
+@@ -0,0 +1,40 @@
++name: Angular checks
++
++on:
++  push:
++    branches:
++      - main
++      - rxjs
++      - migration
++      - signal
++      - 'yc/**'
++  pull_request:
++    branches:
++      - main
++      - rxjs
++      - migration
++      - signal
++
++jobs:
++  verify:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: '22'
++          cache: npm
++      - name: Install dependencies
++        run: npm ci --no-audit --no-fund
++      - name: Production build
++        run: npm run build
++      - name: Reject focused tests
++        run: |
++          if grep -RnE '\b(fdescribe|fit)[[:space:]]*\(' src --include='*.spec.ts'; then
++            echo "Focused tests would skip part of the suite"
++            exit 1
++          fi
++      - name: Unit tests
++        env:
++          CHROME_BIN: /usr/bin/google-chrome
++        run: npm test -- --watch=false --browsers=ChromeHeadless
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1,27 +1,32 @@
+-# Aymen Sellaouti Advanced Training
++# Angular Renaissance — GL4 TP1
+ 
+-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 15.0.1.
++Angular exercises implemented on separate branches, as required by the TP.
+ 
+-## Development server
++## Branches
+ 
+-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
++- **`rxjs`** — Angular 18, NgModules, the rainbow input directive with host bindings, and the CV components using `async` and `catchError` (exercises 8 and 14).
++- **`migration`** — Angular 22, standalone bootstrapping, modern template control flow, and `inject()` (exercises 3–6).
++- **`signal`** — Angular 22 with the signal-based rainbow directive, Todo board and TTC calculator, plus the migrated CV code (exercises 8, 10 and 11).
++- **`main`** — Integrated Angular 22 version. The Angular 18 implementation remains accessible on `rxjs`.
+ 
+-## Code scaffolding
++The CV Signals and authentication Signals exercises (pages 12–13) are being developed separately and should be reviewed before adding them to the final integrated version.
+ 
+-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
++## Run the project
+ 
+-## Build
++Use Node.js 22 and check out the branch you want to validate.
+ 
+-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
++```bash
++npm ci
++npm start
++```
+ 
+-## Running unit tests
++The app is served at `http://localhost:4200`. The Todo board and TTC calculator are accessible through the navbar on `signal` and the integrated `main` branch. The rainbow input example is available at `/rainbow`.
+ 
+-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
++## Validation
+ 
+-## Running end-to-end tests
++```bash
++npm run build
++npm test -- --watch=false --browsers=ChromeHeadless
++```
+ 
+-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+-
+-## Further help
+-
+-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
++The fork's GitHub Actions workflow runs these checks automatically. It also rejects focused Jasmine tests, so a successful result cannot silently skip the rest of the suite.
+diff --git a/src/app/app.component.spec.ts b/src/app/app.component.spec.ts
+--- a/src/app/app.component.spec.ts
++++ b/src/app/app.component.spec.ts
+@@ -1,10 +1,12 @@
++import { componentTestProviders } from './testing/test-providers';
+ import { TestBed } from '@angular/core/testing';
+ import { AppComponent } from './app.component';
+ 
+ describe('AppComponent', () => {
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+     imports: [AppComponent],
++    providers: componentTestProviders(),
+ }).compileComponents();
+   });
+ 
+@@ -14,18 +16,15 @@ describe('AppComponent', () => {
+     expect(app).toBeTruthy();
+   });
+ 
+-  it(`should have as title 'AdvancedTraining'`, () => {
++  it('should have the current application title', () => {
+     const fixture = TestBed.createComponent(AppComponent);
+     const app = fixture.componentInstance;
+-    expect(app.title).toEqual('AdvancedTraining');
++    expect(app.title).toBe('Starting Advanced Topics');
+   });
+ 
+-  it('should render title', () => {
++  it('renders the navigation', () => {
+     const fixture = TestBed.createComponent(AppComponent);
+     fixture.detectChanges();
+-    const compiled = fixture.nativeElement as HTMLElement;
+-    expect(compiled.querySelector('.content span')?.textContent).toContain(
+-      'AdvancedTraining app is running!'
+-    );
++    expect(fixture.nativeElement.querySelector('app-navbar')).not.toBeNull();
+   });
+ });
+diff --git a/src/app/auth/login/login.component.spec.ts b/src/app/auth/login/login.component.spec.ts
+--- a/src/app/auth/login/login.component.spec.ts
++++ b/src/app/auth/login/login.component.spec.ts
+@@ -1,3 +1,4 @@
++import { componentTestProviders } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { LoginComponent } from './login.component';
+@@ -8,7 +9,8 @@ describe('LoginComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-    imports: [LoginComponent]
++    imports: [LoginComponent],
++    providers: componentTestProviders(),
+ })
+     .compileComponents();
+diff --git a/src/app/components/color/color.component.spec.ts b/src/app/components/color/color.component.spec.ts
+--- a/src/app/components/color/color.component.spec.ts
++++ b/src/app/components/color/color.component.spec.ts
+@@ -1,3 +1,4 @@
++import { componentTestProviders } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { ColorComponent } from './color.component';
+@@ -8,7 +9,8 @@ describe('ColorComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-    imports: [ColorComponent]
++    imports: [ColorComponent],
++    providers: componentTestProviders(),
+ })
+     .compileComponents();
+diff --git a/src/app/components/navbar/navbar.component.html b/src/app/components/navbar/navbar.component.html
+--- a/src/app/components/navbar/navbar.component.html
++++ b/src/app/components/navbar/navbar.component.html
+@@ -11,7 +11,7 @@
+         class="navbar-toggler"
+         type="button"
+         data-bs-toggle="collapse"
+-        data-bs-target="['']navbarNavAltMarkup"
++        data-bs-target="#navbarNavAltMarkup"
+         aria-controls="navbarNavAltMarkup"
+         aria-expanded="false"
+         aria-label="Toggle navigation"
+diff --git a/src/app/components/navbar/navbar.component.spec.ts b/src/app/components/navbar/navbar.component.spec.ts
+--- a/src/app/components/navbar/navbar.component.spec.ts
++++ b/src/app/components/navbar/navbar.component.spec.ts
+@@ -1,3 +1,4 @@
++import { componentTestProviders } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { NavbarComponent } from './navbar.component';
+@@ -8,7 +9,8 @@ describe('NavbarComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-    imports: [NavbarComponent]
++    imports: [NavbarComponent],
++    providers: componentTestProviders(),
+ })
+     .compileComponents();
+ 
+@@ -20,4 +22,8 @@ describe('NavbarComponent', () => {
+   it('should create', () => {
+     expect(component).toBeTruthy();
+   });
++  it('targets the collapsible menu', () => {
++    const toggle = fixture.nativeElement.querySelector('.navbar-toggler');
++    expect(toggle.getAttribute('data-bs-target')).toBe('#navbarNavAltMarkup');
++  });
+ });
+diff --git a/src/app/cv/add-cv/add-cv.component.spec.ts b/src/app/cv/add-cv/add-cv.component.spec.ts
+--- a/src/app/cv/add-cv/add-cv.component.spec.ts
++++ b/src/app/cv/add-cv/add-cv.component.spec.ts
+@@ -1,3 +1,4 @@
++import { componentTestProviders } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { AddCvComponent } from './add-cv.component';
+@@ -8,7 +9,8 @@ describe('AddCvComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-    imports: [AddCvComponent]
++    imports: [AddCvComponent],
++    providers: componentTestProviders(),
+ })
+     .compileComponents();
+diff --git a/src/app/cv/cv-card/cv-card.component.spec.ts b/src/app/cv/cv-card/cv-card.component.spec.ts
+--- a/src/app/cv/cv-card/cv-card.component.spec.ts
++++ b/src/app/cv/cv-card/cv-card.component.spec.ts
+@@ -1,3 +1,4 @@
++import { componentTestProviders } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { CvCardComponent } from './cv-card.component';
+@@ -8,7 +9,8 @@ describe('CvCardComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-    imports: [CvCardComponent]
++    imports: [CvCardComponent],
++    providers: componentTestProviders(),
+ })
+     .compileComponents();
+diff --git a/src/app/cv/cv/cv.component.html b/src/app/cv/cv/cv.component.html
+--- a/src/app/cv/cv/cv.component.html
++++ b/src/app/cv/cv/cv.component.html
+@@ -3,10 +3,10 @@
+     <div class="alert alert-warning">
+       {{ date | date : "full" | uppercase }}
+     </div>
+-    <app-list [cvs]="cvs"></app-list>
++    <app-list [cvs]="cvs$ | async"></app-list>
+   </div>
+   <div class="col">
+-    <app-cv-card [cv]="selectedCv"></app-cv-card>
++    <app-cv-card [cv]="selectedCv$ | async"></app-cv-card>
+   </div>
+ </div>
+ <app-embauche></app-embauche>
+diff --git a/src/app/cv/cv/cv.component.spec.ts b/src/app/cv/cv/cv.component.spec.ts
+--- a/src/app/cv/cv/cv.component.spec.ts
++++ b/src/app/cv/cv/cv.component.spec.ts
+@@ -1,3 +1,4 @@
++import { componentTestProviders } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { CvComponent } from './cv.component';
+@@ -8,7 +9,8 @@ describe('CvComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-    imports: [CvComponent]
++    imports: [CvComponent],
++    providers: componentTestProviders(),
+ })
+     .compileComponents();
+diff --git a/src/app/cv/cv/cv.component.ts b/src/app/cv/cv/cv.component.ts
+--- a/src/app/cv/cv/cv.component.ts
++++ b/src/app/cv/cv/cv.component.ts
+@@ -1,43 +1,38 @@
+ import { Component, ChangeDetectionStrategy, inject } from "@angular/core";
++import { Observable, catchError, of } from "rxjs";
+ import { Cv } from "../model/cv";
+ import { LoggerService } from "../../services/logger.service";
+ import { ToastrService } from "ngx-toastr";
+ import { CvService } from "../services/cv.service";
+ import { ListComponent } from "../list/list.component";
+ import { CvCardComponent } from "../cv-card/cv-card.component";
+ import { EmbaucheComponent } from "../embauche/embauche.component";
+-import { UpperCasePipe, DatePipe } from "@angular/common";
++import { UpperCasePipe, DatePipe, AsyncPipe } from "@angular/common";
+ @Component({
+     selector: "app-cv",
+     templateUrl: "./cv.component.html",
+     styleUrls: ["./cv.component.css"],
+     changeDetection: ChangeDetectionStrategy.Eager,
+-    imports: [ListComponent, CvCardComponent, EmbaucheComponent, UpperCasePipe, DatePipe]
++    imports: [ListComponent, CvCardComponent, EmbaucheComponent, UpperCasePipe, DatePipe, AsyncPipe]
+ })
+ export class CvComponent {
+   private logger = inject(LoggerService);
+   private toastr = inject(ToastrService);
+   private cvService = inject(CvService);
+ 
+-  cvs: Cv[] = [];
+-  selectedCv: Cv | null = null;
+-  /*   selectedCv: Cv | null = null; */
++  cvs$: Observable<Cv[]>;
++  selectedCv$: Observable<Cv>;
+   date = new Date();
+ 
+   constructor() {
+-    this.cvService.getCvs().subscribe({
+-      next: (cvs) => {
+-        this.cvs = cvs;
+-      },
+-      error: () => {
+-        this.cvs = this.cvService.getFakeCvs();
+-        this.toastr.error(`
+-          Attention!! Les données sont fictives, problème avec le serveur.
+-          Veuillez contacter l'admin.`);
+-      },
+-    });
++    this.cvs$ = this.cvService.getCvs().pipe(
++      catchError(() => {
++        this.toastr.error('Attention ! Les données sont fictives, problème avec le serveur.');
++        return of(this.cvService.getFakeCvs());
++      })
++    );
++    this.selectedCv$ = this.cvService.selectCv$;
+     this.logger.logger("je suis le cvComponent");
+     this.toastr.info("Bienvenu dans notre CvTech");
+-    this.cvService.selectCv$.subscribe((cv) => (this.selectedCv = cv));
+   }
+ }
+diff --git a/src/app/cv/details-cv/details-cv.component.html b/src/app/cv/details-cv/details-cv.component.html
+--- a/src/app/cv/details-cv/details-cv.component.html
++++ b/src/app/cv/details-cv/details-cv.component.html
+@@ -1,4 +1,4 @@
+-@if (cv) {
++@if (cv$ | async; as cv) {
+   <div class="d-flex justify-content-center">
+     <div class="col-lg-8 push-lg-4">
+       <div class="tab-content p-b-3">
+diff --git a/src/app/cv/details-cv/details-cv.component.spec.ts b/src/app/cv/details-cv/details-cv.component.spec.ts
+--- a/src/app/cv/details-cv/details-cv.component.spec.ts
++++ b/src/app/cv/details-cv/details-cv.component.spec.ts
+@@ -1,3 +1,4 @@
++import { componentTestProviders } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { DetailsCvComponent } from './details-cv.component';
+@@ -8,7 +9,8 @@ describe('DetailsCvComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-    imports: [DetailsCvComponent]
++    imports: [DetailsCvComponent],
++    providers: componentTestProviders(),
+ })
+     .compileComponents();
+diff --git a/src/app/cv/details-cv/details-cv.component.ts b/src/app/cv/details-cv/details-cv.component.ts
+--- a/src/app/cv/details-cv/details-cv.component.ts
++++ b/src/app/cv/details-cv/details-cv.component.ts
+@@ -1,4 +1,6 @@
+-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
++import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
++import { AsyncPipe } from '@angular/common';
++import { EMPTY, Observable, catchError } from 'rxjs';
+ import { Cv } from '../model/cv';
+ import { CvService } from '../services/cv.service';
+ import { ActivatedRoute, Router } from '@angular/router';
+@@ -12,39 +14,36 @@ import { DefaultImagePipe } from '../pipes/default-image.pipe';
+     templateUrl: './details-cv.component.html',
+     styleUrls: ['./details-cv.component.css'],
+     changeDetection: ChangeDetectionStrategy.Eager,
+-    imports: [DefaultImagePipe]
++    imports: [DefaultImagePipe, AsyncPipe]
+ })
+-export class DetailsCvComponent implements OnInit {
++export class DetailsCvComponent {
+   private cvService = inject(CvService);
+   private router = inject(Router);
+   private activatedRoute = inject(ActivatedRoute);
+   private toastr = inject(ToastrService);
+   authService = inject(AuthService);
+ 
+-  cv: Cv | null = null;
++  cv$: Observable<Cv>;
+ 
+-  ngOnInit() {
+-    const id = this.activatedRoute.snapshot.params['id'];
+-    this.cvService.getCvById(+id).subscribe({
+-        next: (cv) => {
+-          this.cv = cv;
+-        },
+-        error: (e) => {
+-          this.router.navigate([APP_ROUTES.cv]);
+-        },
+-      });
++  constructor() {
++    const id = +this.activatedRoute.snapshot.params['id'];
++    this.cv$ = this.cvService.getCvById(id).pipe(
++      catchError(() => {
++        this.router.navigate([APP_ROUTES.cv]);
++        return EMPTY;
++      })
++    );
+   }
++
+   deleteCv(cv: Cv) {
+-    this.cvService.deleteCvById(cv.id).subscribe({
+-      next: () => {
+-        this.toastr.success(`${cv.name} supprimé avec succès`);
+-        this.router.navigate([APP_ROUTES.cv]);
+-      },
+-      error: () => {
+-        this.toastr.error(
+-          `Problème avec le serveur veuillez contacter l'admin`
+-        );
+-      },
++    this.cvService.deleteCvById(cv.id).pipe(
++      catchError(() => {
++        this.toastr.error('Problème avec le serveur veuillez contacter l\'admin');
++        return EMPTY;
++      })
++    ).subscribe(() => {
++      this.toastr.success(`${cv.name} supprimé avec succès`);
++      this.router.navigate([APP_ROUTES.cv]);
+     });
+   }
+ }
+diff --git a/src/app/cv/item/item.component.spec.ts b/src/app/cv/item/item.component.spec.ts
+--- a/src/app/cv/item/item.component.spec.ts
++++ b/src/app/cv/item/item.component.spec.ts
+@@ -1,3 +1,5 @@
++import { Cv } from '../model/cv';
++import { componentTestProviders } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { ItemComponent } from './item.component';
+@@ -8,12 +10,14 @@ describe('ItemComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-    imports: [ItemComponent]
++    imports: [ItemComponent],
++    providers: componentTestProviders(),
+ })
+     .compileComponents();
+ 
+     fixture = TestBed.createComponent(ItemComponent);
+     component = fixture.componentInstance;
++    fixture.componentRef.setInput('cv', new Cv(1, 'Test', 'User', 'Developer', '', '123456', 25));
+     fixture.detectChanges();
+   });
+diff --git a/src/app/directives/rainbow.directive.spec.ts b/src/app/directives/rainbow.directive.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/src/app/directives/rainbow.directive.spec.ts
+@@ -0,0 +1,38 @@
++import { Component } from '@angular/core';
++import { ComponentFixture, TestBed } from '@angular/core/testing';
++import { By } from '@angular/platform-browser';
++import { RainbowDirective } from './rainbow.directive';
++
++@Component({
++  imports: [RainbowDirective],
++  template: '<input appRainbow><div appRainbow>Plain div</div>',
++})
++class TestHostComponent {}
++
++describe('RainbowDirective', () => {
++  let fixture: ComponentFixture<TestHostComponent>;
++
++  beforeEach(async () => {
++    await TestBed.configureTestingModule({
++      imports: [TestHostComponent],
++    }).compileComponents();
++    fixture = TestBed.createComponent(TestHostComponent);
++    fixture.detectChanges();
++  });
++
++  it('only attaches to inputs', () => {
++    expect(fixture.debugElement.queryAll(By.directive(RainbowDirective)).length).toBe(1);
++  });
++
++  it('updates the input text and border colors after a keyup', () => {
++    const element = fixture.debugElement.query(By.directive(RainbowDirective));
++    const directive = element.injector.get(RainbowDirective);
++
++    element.nativeElement.dispatchEvent(new KeyboardEvent('keyup'));
++    fixture.detectChanges();
++
++    expect(directive.color()).toMatch(/^#[0-9a-f]{6}$/);
++    expect(directive.borderColor()).toBe(directive.color());
++    expect((element.nativeElement as HTMLInputElement).style.color).toBeTruthy();
++  });
++});
+diff --git a/src/app/rxjs/test-observable/test-observable.component.spec.ts b/src/app/rxjs/test-observable/test-observable.component.spec.ts
+--- a/src/app/rxjs/test-observable/test-observable.component.spec.ts
++++ b/src/app/rxjs/test-observable/test-observable.component.spec.ts
+@@ -1,3 +1,4 @@
++import { componentTestProviders } from '../../testing/test-providers';
+ import { ComponentFixture, TestBed } from '@angular/core/testing';
+ 
+ import { TestObservableComponent } from './test-observable.component';
+@@ -8,7 +9,8 @@ describe('TestObservableComponent', () => {
+ 
+   beforeEach(async () => {
+     await TestBed.configureTestingModule({
+-    imports: [TestObservableComponent]
++    imports: [TestObservableComponent],
++    providers: componentTestProviders(),
+ })
+     .compileComponents();
+diff --git a/src/app/testing/test-providers.ts b/src/app/testing/test-providers.ts
+new file mode 100644
+--- /dev/null
++++ b/src/app/testing/test-providers.ts
+@@ -0,0 +1,18 @@
++import { provideHttpClient } from '@angular/common/http';
++import { provideHttpClientTesting } from '@angular/common/http/testing';
++import { provideRouter } from '@angular/router';
++import { ToastrService } from 'ngx-toastr';
++
++export function componentTestProviders() {
++  return [
++    provideHttpClient(),
++    provideHttpClientTesting(),
++    provideRouter([]),
++    {
++      provide: ToastrService,
++      useValue: jasmine.createSpyObj<ToastrService>('ToastrService', [
++        'error', 'info', 'success', 'warning',
++      ]),
++    },
++  ];
++}
+diff --git a/src/app/unitTest/color-ut/color-ut.component.spec.ts b/src/app/unitTest/color-ut/color-ut.component.spec.ts
+--- a/src/app/unitTest/color-ut/color-ut.component.spec.ts
++++ b/src/app/unitTest/color-ut/color-ut.component.spec.ts
+@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
+ 
+ import { ColorUtComponent } from "./color-ut.component";
+ 
+-fdescribe("ColorUtComponent", () => {
++describe("ColorUtComponent", () => {
+   let component: ColorUtComponent;
+   let fixture: ComponentFixture<ColorUtComponent>;
+   beforeEach(async () => {
+diff --git a/src/app/unitTest/counter/counter.component.spec.ts b/src/app/unitTest/counter/counter.component.spec.ts
+--- a/src/app/unitTest/counter/counter.component.spec.ts
++++ b/src/app/unitTest/counter/counter.component.spec.ts
+@@ -1,7 +1,7 @@
+ import { ComponentFixture, TestBed } from "@angular/core/testing";
+ import { CounterComponent } from "./counter.component";
+ 
+-fdescribe("CounterComponent", () => {
++describe("CounterComponent", () => {
+   let component: CounterComponent;
+   let fixture: ComponentFixture<CounterComponent>;
+   beforeEach(async () => {

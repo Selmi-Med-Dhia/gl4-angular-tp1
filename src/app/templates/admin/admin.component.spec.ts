@@ -1,3 +1,4 @@
+import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { AdminComponent } from './admin.component';
@@ -8,6 +9,8 @@ describe('AdminComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      imports: commonTestImports,
+      providers: commonTestProviders(),
       declarations: [ AdminComponent ]
     })
     .compileComponents();

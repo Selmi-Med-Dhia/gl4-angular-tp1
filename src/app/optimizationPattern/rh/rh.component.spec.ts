@@ -1,3 +1,4 @@
+import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { RhComponent } from './rh.component';
@@ -8,6 +9,9 @@ describe('RhComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      schemas: shallowTestSchemas,
+      imports: commonTestImports,
+      providers: commonTestProviders(),
       declarations: [ RhComponent ]
     })
     .compileComponents();

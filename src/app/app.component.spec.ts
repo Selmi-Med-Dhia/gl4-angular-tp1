@@ -1,9 +1,13 @@
+import { commonTestImports, commonTestProviders, shallowTestSchemas } from './testing/test-providers';
 import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      schemas: shallowTestSchemas,
+      imports: commonTestImports,
+      providers: commonTestProviders(),
       declarations: [
         AppComponent
       ],
@@ -16,18 +20,15 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have as title 'AdvancedTraining'`, () => {
+  it('should expose the application title', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    expect(app.title).toEqual('AdvancedTraining');
+    expect(app.title).toBe('Starting Advanced Topics');
   });
 
-  it('should render title', () => {
+  it('renders the navigation container', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.content span')?.textContent).toContain(
-      'AdvancedTraining app is running!'
-    );
+    expect(fixture.nativeElement.querySelector('app-navbar')).not.toBeNull();
   });
 });

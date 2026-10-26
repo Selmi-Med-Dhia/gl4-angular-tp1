@@ -1,3 +1,4 @@
+import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { UserListComponent } from './user-list.component';
@@ -8,6 +9,8 @@ describe('UserListComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      imports: commonTestImports,
+      providers: commonTestProviders(),
       declarations: [ UserListComponent ]
     })
     .compileComponents();

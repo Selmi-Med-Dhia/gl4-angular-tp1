@@ -28,6 +28,12 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Production build
         run: npm run build
+      - name: Reject focused tests
+        run: |
+          if grep -RnE '\b(fdescribe|fit)[[:space:]]*\(' src --include='*.spec.ts'; then
+            echo "Focused tests would skip part of the suite"
+            exit 1
+          fi
       - name: Unit tests
         env:
           CHROME_BIN: /usr/bin/google-chrome

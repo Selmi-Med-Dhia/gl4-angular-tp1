@@ -1,10 +1,12 @@
+import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
 import { TestBed } from '@angular/core/testing';
 
 import { AuthInterceptor } from './auth.interceptor';
 
 describe('AuthInterceptor', () => {
   beforeEach(() => TestBed.configureTestingModule({
-    providers: [
+      imports: commonTestImports,
+    providers: [...commonTestProviders(),
       AuthInterceptor
       ]
   }));

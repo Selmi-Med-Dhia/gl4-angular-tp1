@@ -1,3 +1,4 @@
+import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FirstComponent } from './first.component';
@@ -8,6 +9,9 @@ describe('FirstComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      schemas: shallowTestSchemas,
+      imports: commonTestImports,
+      providers: commonTestProviders(),
       declarations: [ FirstComponent ]
     })
     .compileComponents();

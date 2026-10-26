@@ -1,3 +1,5 @@
+import { DefaultImagePipe } from '../pipes/default-image.pipe';
+import { commonTestImports, commonTestProviders, shallowTestSchemas } from '../../testing/test-providers';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DetailsCvComponent } from './details-cv.component';
@@ -8,7 +10,9 @@ describe('DetailsCvComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ DetailsCvComponent ]
+      imports: commonTestImports,
+      providers: commonTestProviders(),
+      declarations: [DetailsCvComponent, DefaultImagePipe]
     })
     .compileComponents();
 
